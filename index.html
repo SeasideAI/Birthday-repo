@@ -79,6 +79,14 @@ button:disabled{opacity:.6;cursor:not-allowed;}
 .replay{margin-top:26px;}
 .tiny{color:var(--muted);font-size:13px;margin-top:18px;}
 .center{text-align:center;}
+.curtain{position:relative;height:130px;margin:6px auto 18px;max-width:340px;border-radius:14px;overflow:hidden;background:#160630;border:1px solid var(--card-border);box-shadow:inset 0 0 30px rgba(0,0,0,.6);}
+.curtain__left,.curtain__right{position:absolute;top:0;bottom:0;width:51%;z-index:2;transition:transform .7s cubic-bezier(.7,0,.3,1);background:repeating-linear-gradient(90deg,#7a0f3a 0 14px,#a3164e 14px 28px);box-shadow:inset -10px 0 22px rgba(0,0,0,.45);}
+.curtain__left{left:0;}
+.curtain__right{right:0;box-shadow:inset 10px 0 22px rgba(0,0,0,.45);}
+.curtain.open .curtain__left{transform:translateX(-100%);}
+.curtain.open .curtain__right{transform:translateX(100%);}
+.curtain__gift{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:52px;z-index:1;animation:giftPulse 1.6s ease-in-out infinite;}
+@keyframes giftPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
 </style>
 </head>
 <body>
@@ -91,6 +99,8 @@ button:disabled{opacity:.6;cursor:not-allowed;}
 var ANSWERS = JSON.parse(decodeURIComponent(escape(atob(
 "eyJzbG90MSI6WyJnaXRhYXIiLCJndWl0YXIiLCJkZWdpdGFhciJdLCJzbG90MiI6WyI2NDI1Il0sInNsb3QzIjpbInBvZGl1bSIsImhldHBvZGl1bSIsInN0YWdlIiwicG9kaXVtbSJdLCJzbG90NCI6WyJ0aWNrZXQiLCJ0aWNrZXRzIiwia2FhcnRqZSIsImthYXJ0amVzIiwia2FhcnQiLCJrYWFydGVuIiwidGlja2V0amUiLCJ0b2VnYW5nc3RpY2tldCIsImlua29tdGlja2V0Il19"
 ))));
+// extra meesterslot (slot 5): som van de cijfers 6+4+2+5
+ANSWERS.slot5 = ["17", "zeventien"];
 var GIFT = JSON.parse(decodeURIComponent(escape(atob(
 "eyJoZWFkbGluZSI6IkdlZmVsaWNpdGVlcmQsIEluZ2UhIPCfjokiLCJzdWJoZWFkIjoiSmlqIGdhYXQgbmFhciBlZW4gZmVzdGl2YWwgdm9sIHRpamRsb3plIGtsYXNzaWVrZXJzLiIsImV2ZW50Ijp7Im5hbWUiOiJEZSBUaWpkbG96ZSBUcmlidXRlIEZlc3RpdmFsIiwidGFnbGluZSI6IkVlbiBhdm9uZCB2b2wgdGlqZGxvemUgcm9ja2tsYXNzaWVrZXJzLCBsaXZlIG9wIGhldCBwb2RpdW0uIiwiZGF0ZSI6IlphdGVyZGFnIDI1IGp1bGkgMjAyNiIsImRvb3JzIjoiRGV1cmVuIG9wZW4gMTY6MzAgwrcgU3RhcnQgMTg6MDAiLCJsb2NhdGlvbiI6IlpvbWVyYXJlbmEgS29rc2lqZGUg4oCUIEtlcmtwbGVpbiIsInNlYXQiOiJTdGFhbnBsYWF0cyIsImhvbGRlciI6IktlbnpvIEhvbGxldm9ldCJ9LCJ0aWNrZXRzIjpbeyJpZCI6MSwibGFiZWwiOiJUaWNrZXQgMSIsIndobyI6IlZvb3Igam91LCBkZSBqYXJpZ2Ug8J+OgiJ9LHsiaWQiOjIsImxhYmVsIjoiVGlja2V0IDIiLCJ3aG8iOiJWb29yIGplICsxIChoZWVsIG1pc3NjaGllbiBqZSBmYXZvcmlldGUgem9vbiDwn5iJKSJ9XSwibWVzc2FnZSI6IkdlbHVra2lnZSB2ZXJqYWFyZGFnLCBtYW1hISBKaWogdmVyZGllbnQgZWVuIGF2b25kIHpvbmRlciB6b3JnZW4sIG1ldCBsdWlkZSBnaXRhcmVuIGVuIGFsIGplIGZhdm9yaWV0ZSBrbGFzc2lla2Vycy4gVHdlZSBzdGFhbnBsYWF0c2VuLCBlZW50amUgdm9vciBqb3UgZW4gZWVudGplIHZvb3IgamUgKzEuIEFscyBtaWpuIHdlcmtzY2hlbWEgaGV0IHRvZWxhYXQsIHN0YSBpayBtYWFyIGFsIHRlIGdyYWFnIG5hYXN0IGplIG1lZSB0ZSB6aW5nZW4uIEdlbmlldCBlcnZhbiDigJQgamUgaGVidCBoZXQgZGlrIHZlcmRpZW5kLiB4eHgiLCJzaWdub2ZmIjoiTWV0IGFsbGUgbGllZmRlLCBLZW56byJ9"
 ))));
@@ -98,39 +108,46 @@ var GIFT = JSON.parse(decodeURIComponent(escape(atob(
 var INTRO = {
   title:"Backstage Pass",
   subtitle:"Een geheime escape voor Inge",
-  body:"Dag Inge! Iemand heeft een cadeau voor je verstopt achter vier sloten. Kraak ze één voor één en de gordijnen gaan open. Geen muziekprofessor nodig: elke aanwijzing heeft hints als je even vastzit. Klaar? Licht uit, spots aan.",
+  body:"Dag Inge! Iemand heeft een cadeau voor je verstopt achter vijf sloten — en het laatste is een echt meesterslot. Kraak ze één voor één en de gordijnen gaan open. Elke aanwijzing heeft hints als je even vastzit, maar probeer het eerst zelf. Klaar? Licht uit, spots aan.",
   startLabel:"Start de show"
 };
 
 var STAGES = [
-  { id:"slot1", lock:"Slot 1 van 4", title:"Stem je gitaar",
+  { id:"slot1", lock:"Slot 1 van 5", title:"Stem je gitaar",
     flavor:"Elke rocklegende begint met dit instrument in de hand.",
     clue:"Herschik deze letters tot één woord:\n\nR · A · A · T · I · G",
     placeholder:"Welk woord?",
     hints:["Het zijn 6 letters en je bespeelt het met snaren.",
            "Een rockband zonder dit instrument? Ondenkbaar. Het begint met een G.",
            "G _ T A A R … vul de twee ontbrekende letters in."] },
-  { id:"slot2", lock:"Slot 2 van 4", title:"Het cijferslot",
+  { id:"slot2", lock:"Slot 2 van 5", title:"Het cijferslot",
     flavor:"Vier kleine vragen, vier cijfers. Samen openen ze het slot.",
     clue:"Bouw de 4-cijferige code, in volgorde:\n\n1) Hoeveel snaren heeft een gewone gitaar?\n2) Hoeveel leden telde The Beatles?\n3) De Ierse band van Bono heet U_ . Welk cijfer?\n4) De band van Adam Levine heet Maroon _ . Welk cijfer?",
     placeholder:"4 cijfers, bv. 1234",
     hints:["Vraag 1: tel de snaren op een klassieke gitaar… het zijn er zes.",
            "Vraag 2: John, Paul, George en Ringo. Dat zijn er vier.",
            "Vraag 3 is U2, vraag 4 is Maroon 5. De code wordt dus 6 4 2 5."] },
-  { id:"slot3", lock:"Slot 3 van 4", title:"De geheime plek",
+  { id:"slot3", lock:"Slot 3 van 5", title:"De geheime plek",
     flavor:"Een klassieke geheimschrift-truc: schuif het alfabet op.",
     clue:"Schuif elke letter 1 plekje TERUG in het alfabet (B wordt A, C wordt B, ...):\n\nQ · P · E · J · V · N\n\nWelk woord verschijnt er? (Het is de plek waar de band staat te spelen.)",
     placeholder:"Het ontcijferde woord",
     hints:["Q terug = P, P terug = O. Begin alvast: P O …",
            "Het is de verhoging waarop de artiesten staan tijdens een concert.",
            "P O D I U _  … nog één letter (M terug van N)."] },
-  { id:"slot4", lock:"Laatste slot", title:"Het allerlaatste slot",
-    flavor:"Nog één woord en de gordijnen gaan open…",
+  { id:"slot4", lock:"Slot 4 van 5", title:"Het toegangsslot",
+    flavor:"Bijna binnen. Nog één woord, dan wacht het meesterslot.",
     clue:"Wat moet je áltijd tonen aan de ingang van een concert of festival, anders kom je er niet in? (in het enkelvoud)",
     placeholder:"Eén woord",
     hints:["Je koopt het op voorhand en bewaart het zorgvuldig.",
            "Een kaartje, een … ?",
-           "Het Engelse woord is 'ticket'. Het Nederlandse 'kaartje' mag ook."] }
+           "Het Engelse woord is 'ticket'. Het Nederlandse 'kaartje' mag ook."] },
+  { id:"slot5", lock:"Laatste slot", title:"Het meesterslot",
+    flavor:"De allerlaatste kluis opent niet met een woord, maar met één getal.",
+    clue:"Eén code kraakte je eerder al: een rij van vier cijfers.\n\nTel die vier cijfers bij elkaar op. Welk getal opent het meesterslot?",
+    placeholder:"Eén getal",
+    hints:["Het gaat om de code uit het cijferslot (slot 2).",
+           "Die code was 6 · 4 · 2 · 5. Tel ze nu samen op.",
+           "6 + 4 + 2 + 5 = … zeventien."] }
 ];
 
 // ---------- helpers ----------
@@ -220,7 +237,7 @@ function screenPlay(){
       fb.className="feedback ok"; fb.textContent="Klik! Het slot springt open. ✨";
       document.getElementById("go").disabled=true; inp.disabled=true;
       setTimeout(function(){
-        if(state.idx===STAGES.length-1){ screenReveal(); }
+        if(state.idx===STAGES.length-1){ screenUnlocked(); }
         else { state.idx++; state.hintLevel=0; state.wrong=0; screenPlay(); }
       },850);
     } else {
@@ -232,6 +249,25 @@ function screenPlay(){
   };
 }
 
+// ---------- UNLOCKED (tussenscherm: bouw de spanning op) ----------
+function screenUnlocked(){
+  app.innerHTML="";
+  var c=el('<div class="card center"></div>');
+  c.innerHTML=
+    '<span class="kicker">\u{1F513} Alle sloten geopend</span>'+
+    '<h1>De gordijnen…</h1>'+
+    '<p class="subtitle">…staan op het punt open te gaan.</p>'+
+    '<div class="curtain" id="curtain"><div class="curtain__gift">\u{1F381}</div><div class="curtain__left"></div><div class="curtain__right"></div></div>'+
+    '<p class="body-text">Vijf sloten gekraakt — meesterslot incluis. Wat erachter zit, ontdek je zo. Even diep ademhalen…</p>'+
+    '<button class="btn-block" id="openBtn">Open je cadeau \u{1F3AD}</button>';
+  app.appendChild(c);
+  document.getElementById("openBtn").onclick=function(){
+    var cu=document.getElementById("curtain"); if(cu) cu.classList.add("open");
+    this.disabled=true; this.textContent="✨";
+    setTimeout(screenReveal,750);
+  };
+}
+
 // ---------- REVEAL ----------
 function screenReveal(){
   app.innerHTML="";
@@ -239,7 +275,7 @@ function screenReveal(){
   for(var i=0;i<GIFT.tickets.length;i++){
     var tk=GIFT.tickets[i];
     tickets+=
-      '<div class="ticket"><div class="stub">\u{1F3B8}</div><div class="ticket-inner">'+
+      '<div class="ticket" style="animation-delay:'+(0.15+i*0.3)+'s"><div class="stub">\u{1F3B8}</div><div class="ticket-inner">'+
       '<p class="ev-name">'+esc(ev.name)+'</p>'+
       '<p class="ev-line">'+esc(ev.tagline)+'</p>'+
       '<p class="ev-line"><span class="lbl">Datum</span> '+esc(ev.date)+'</p>'+
